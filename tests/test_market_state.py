@@ -70,3 +70,14 @@ def test_build_market_state_always_returns_five_axes():
     states = build_market_state({}, None, None, None, None)
     assert [x["name"] for x in states] == ["Trend","Positioning","Volatility","Options","Futures curve"]
     assert all(x["state"] == "N/A" for x in states)
+
+
+def test_curve_ignores_near_expiry_annualization():
+    df = pd.DataFrame({
+        "days": [0.1, 13.0],
+        "annualized_basis_pct": [-85.83, 4.33],
+    })
+    state, detail = classify_curve(df)
+    assert state == "Contango"
+    assert "+4.33%" in detail
+    assert "13d" in detail

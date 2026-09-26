@@ -111,17 +111,34 @@ def classify_options(iv, rv, rr=None) -> tuple[str, str]:
     return label, detail
 
 
-def classify_curve(delivery: pd.DataFrame | None) -> tuple[str, str]:
+def classify_curve(delivery: pd.DataFrame | None, min_days: float = 7.0) -> tuple[str, str]:
+    """Classify the curve using the nearest contract with >= min_days remaining.
+
+    Very short-dated contracts are still displayed in the dashboard, but are
+    excluded from Market State because annualizing a tiny near-expiry basis can
+    create mechanically extreme percentages.
+    """
     if delivery is None or delivery.empty or "annualized_basis_pct" not in delivery:
         return "N/A", "Dated futures basis unavailable"
-    vals = pd.to_numeric(delivery["annualized_basis_pct"], errors="coerce").dropna()
+    frame = delivery.copy()
+    if "days" in frame:
+        days = pd.to_numeric(frame["days"], errors="coerce")
+        frame = frame.loc[days >= min_days].copy()
+    if frame.empty:
+        return "N/A", f"No dated future with ≥{min_days:.0f}d remaining"
+    frame = frame.sort_values("days") if "days" in frame else frame
+    vals = pd.to_numeric(frame["annualized_basis_pct"], errors="coerce").dropna()
     if vals.empty: return "N/A", "Dated futures basis unavailable"
     near = float(vals.iloc[0])
     if near < 0: label = "Backwardation"
     elif near < 3: label = "Mild contango"
     elif near < 8: label = "Contango"
     else: label = "Steep contango"
-    return label, f"nearest annualized basis {near:+.2f}%"
+    days_used = float(frame.loc[vals.index[0], "days"]) if "days" in frame else None
+    detail = f"nearest ≥{min_days:.0f}d annualized basis {near:+.2f}%"
+    if days_used is not None:
+        detail += f" · {days_used:.0f}d to expiry"
+    return label, detail
 
 
 def build_market_state(technical: dict, deriv: dict | None, oi: pd.DataFrame | None,

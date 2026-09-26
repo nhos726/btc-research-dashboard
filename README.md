@@ -1,4 +1,4 @@
-# BTC Research Dashboard v0.3.5
+# BTC Research Dashboard v0.3.6
 
 A mobile-first Streamlit research terminal for quickly observing what is happening in the Bitcoin market.
 
@@ -9,7 +9,7 @@ The dashboard deliberately does **not** generate BUY/SELL signals, price forecas
 - **Overview** — BTC/USD, 24h and 7d change, distance from ATH.
 - **Market State** — deterministic descriptions of trend, positioning, volatility, options, and futures curve. Missing or stale inputs become `N/A` rather than being guessed.
 - **Price & Trend** — BTCUSDT history, 50d/200d/50w moving averages, 52-week-high distance, RSI, ATR, and 30d realized volatility.
-- **Derivatives** — Binance BTCUSDT perpetual open interest, OI changes, funding, perpetual premium, and dated-futures basis.
+- **Derivatives** — Deribit BTC-PERPETUAL current open interest, 8h-equivalent funding, perpetual premium, and listed dated-futures basis. Historical OI changes remain N/A until point-in-time observations are accumulated.
 - **Options** — Deribit ~30d ATM IV, IV minus realized volatility, and 25-delta risk reversal.
 - **Crypto Liquidity** — DefiLlama USD-pegged stablecoin supply, 7d/30d/90d changes, USDT dominance, and a two-year supply chart.
 - **Flows** — Farside US spot BTC ETF net flows and Coin Metrics aggregate BTC exchange netflow.
@@ -32,7 +32,7 @@ All displayed timestamps are UTC. Values from different venues/providers need no
 ## Important definitions and caveats
 
 - **OI** is Binance USDⓈ-M BTCUSDT only, not market-wide OI.
-- **Funding** is the latest Binance BTCUSDT perpetual funding rate for one funding interval; it is not annualized.
+- **Funding** is the Deribit BTC-PERPETUAL 8h-equivalent funding rate; it is not annualized.
 - **~30d ATM IV** uses the listed Deribit expiry nearest 30 calendar days and the strike nearest that expiry's underlying price. It is not constant-maturity interpolation.
 - **25Δ Risk Reversal** is `IV(25Δ Call) − IV(25Δ Put)`. Delta comes from Deribit Greeks. It describes relative option pricing, not pure demand/order flow and not a forecast.
 - **Stablecoin supply** is an observation variable, not a fear/greed or bullish/bearish signal.
@@ -80,7 +80,7 @@ This repository is designed to be deployed directly from GitHub.
 4. Select the `main` branch and `app.py` as the entrypoint.
 5. Deploy.
 
-No API key is required for the current v0.3.5 data sources.
+No API key is required for the current v0.3.6 data sources.
 
 ### Future paid APIs / secrets
 
@@ -128,3 +128,10 @@ When modifying this project with an AI coding assistant:
 v0.3.5 replaces the cloud-blocked Binance futures collector with free public Deribit BTC futures/perpetual data for current OI, funding, perpetual premium, and the dated-futures curve. OI history/change is intentionally not estimated when unavailable.
 
 Future directions include point-in-time snapshot storage and historical/similar-market-state research, without turning the dashboard into an automated trading system.
+
+
+## v0.3.6
+
+- Market State futures-curve classification ignores contracts with less than 7 days remaining, preventing unstable near-expiry annualization from dominating the state label. Short-dated contracts remain visible in the curve cards.
+- Adds a machine-readable `latest_snapshot.json` export generated from the same in-memory observations shown in the UI. Missing data stays `null`; values are not refetched or estimated.
+- The Streamlit runtime filesystem is ephemeral. v0.3.6 provides the snapshot schema/export foundation; durable point-in-time history and a stable public JSON endpoint require persistent storage or a scheduled GitHub workflow and are intentionally not claimed yet.

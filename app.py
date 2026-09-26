@@ -16,6 +16,7 @@ from collectors.etf_flows import fetch_etf_flows
 from collectors.exchange_flows import fetch_exchange_flows
 from indicators import attach_confirmed_indicators, completed_daily_candles, enrich_ohlcv, overview_from_prices
 from market_state import build_market_state
+from snapshot import build_snapshot, snapshot_json
 
 st.set_page_config(page_title="BTC Research Dashboard", page_icon="₿", layout="wide", initial_sidebar_state="collapsed")
 st.markdown("""<style>
@@ -106,7 +107,7 @@ def unsupported_note(text):
     st.markdown(f'<div class="unsupported">{escape(text)}</div>', unsafe_allow_html=True)
 
 st.markdown('<div class="dashboard-title">₿ BTC Research Dashboard</div>', unsafe_allow_html=True)
-st.markdown('<div class="dashboard-subtitle">v0.3.5 · Market observation, not a trading signal</div>', unsafe_allow_html=True)
+st.markdown('<div class="dashboard-subtitle">v0.3.6 · Market observation, not a trading signal</div>', unsafe_allow_html=True)
 if st.button("↻ Refresh", width="stretch"):
     st.cache_data.clear(); st.rerun()
 
@@ -163,7 +164,7 @@ with st.expander("Market State definitions"):
 - **Funding:** < −0.005%/8h = negative; −0.005% to +0.005% = neutral; > +0.005% to +0.020% = positive; > +0.020% = very positive.
 - **Volatility:** 30d annualized RV <30% = low; 30–<50% = moderate; 50–<70% = elevated; ≥70% = high.
 - **Options:** ~30d ATM IV minus 30d RV < −5 pp = IV below RV; > +5 pp = IV above RV; otherwise near RV. 25Δ RR adds directional relative pricing: > +0.5 pp = calls richer; < −0.5 pp = puts richer; otherwise near balanced.
-- **Futures curve:** nearest dated-futures annualized basis <0% = backwardation; 0–<3% = mild contango; 3–<8% = contango; ≥8% = steep contango.
+- **Futures curve:** the nearest dated future with at least 7 days remaining is used for Market State. Annualized basis <0% = backwardation; 0–<3% = mild contango; 3–<8% = contango; ≥8% = steep contango. Contracts under 7 days remain visible below but are excluded from this classification.
 
 These labels describe the observed state; they do not imply future returns.
 """)
@@ -317,6 +318,42 @@ else:
     st.caption(f"Coin Metrics Community API · Netflow = exchange inflow − exchange outflow · latest observation {pd.Timestamp(ex['latest_date']).strftime('%d %b %Y')} · fetched {stamp(ex_updated)}")
     st.caption("Aggregate exchange activity identified by Coin Metrics. Exchange-to-exchange activity is excluded from aggregate flows. Negative netflow means outflow exceeded inflow; it is not interpreted here as a trading signal.")
 unsupported_note("Exchange balance — not yet supported. Gaps are not estimated.")
+
+# Machine-readable snapshot. This is generated from the same in-memory values
+# shown above; it does not refetch or estimate missing data. Streamlit's local
+# filesystem is ephemeral, so persistence/public hosting is a separate step.
+deriv_snapshot = data["derivatives"][0] if "derivatives" in data else None
+options_snapshot = data["options"][0] if "options" in data else None
+stable_snapshot = data["stablecoins"][0] if "stablecoins" in data else None
+etf_snapshot = data["etf_flows"][0] if "etf_flows" in data else None
+exchange_snapshot = data["exchange_flows"][0] if "exchange_flows" in data else None
+source_times = {
+    "market": data.get("market", (None, None))[1],
+    "spot": data.get("spot", (None, None))[1],
+    "derivatives": data.get("derivatives", (None, None, None, None))[3],
+    "delivery": data.get("delivery", (None, None))[1],
+    "options": data.get("options", (None, None, None))[2],
+    "stablecoins": data.get("stablecoins", (None, None, None))[2],
+    "etf_flows": data.get("etf_flows", (None, None, None))[2],
+    "exchange_flows": data.get("exchange_flows", (None, None, None))[2],
+}
+latest_snapshot = build_snapshot(
+    market=market, technical=technical, states=states, deriv=deriv_snapshot,
+    options=options_snapshot, stablecoins=stable_snapshot, etf=etf_snapshot,
+    exchange_flows=exchange_snapshot, delivery=delivery_for_state,
+    source_times=source_times, errors=errors,
+)
+latest_snapshot_text = snapshot_json(latest_snapshot)
+
+st.header("DATA EXPORT")
+st.download_button(
+    "Download latest_snapshot.json",
+    data=latest_snapshot_text,
+    file_name="latest_snapshot.json",
+    mime="application/json",
+    width="stretch",
+)
+st.caption("Machine-readable snapshot of the same observations shown on this page. Missing values remain null; no gaps are estimated. Persistence and a stable public JSON URL are the next storage step.")
 
 st.header("RESEARCH LINKS")
 st.caption("External tools for deeper inspection. These links do not feed the dashboard calculations.")
