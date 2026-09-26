@@ -1,0 +1,111 @@
+name: Collect BTC snapshot
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 * * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: btc-snapshot-collector
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out application code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Collect snapshot
+        run: python collect_snapshot.py
+
+      - name: Publish snapshots to archive branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/new-data /tmp/snapshots
+          cp -R data /tmp/new-data
+          git config user.name "btc-research-bot"
+          git config user.email "btc-research-bot@users.noreply.github.com"
+
+          if git ls-remote --exit-code --heads origin snapshots >/dev/null 2>&1; then
+            git fetch origin snapshots
+            git worktree add -B snapshots /tmp/snapshots origin/snapshots
+          else
+            git worktree add --detach /tmp/snapshots
+            cd /tmp/snapshots
+            git checkout --orphan snapshots
+            git rm -rf . || true
+          fi
+
+          cd /tmp/snapshots
+          mkdir -p data/history
+          cp /tmp/new-data/latest_snapshot.json data/latest_snapshot.json
+          # Preserve prior observations and merge this run's UTC hourly file at
+          # exactly data/history/YYYY/MM/DD/HH.json.
+          if [ -d /tmp/new-data/history ]; then
+            cp -R /tmp/new-data/history/. data/history/
+          fi
+          git add -f data/
+          if ! git diff --cached --quiet; then
+            git commit -m "data: hourly BTC snapshot"
+            git push origin snapshots
+          else
+            echo "No archive changes to commit."
+          fi
+
+      - name: Publish AI-readable GitHub Pages branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/pages
+          cd "$GITHUB_WORKSPACE"
+
+          if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
+            git fetch origin gh-pages
+            git worktree add -B gh-pages /tmp/pages origin/gh-pages
+          else
+            git worktree add --detach /tmp/pages
+            cd /tmp/pages
+            git checkout --orphan gh-pages
+            git rm -rf . || true
+          fi
+
+          cd /tmp/pages
+          mkdir -p data
+          cp /tmp/new-data/latest_snapshot.json data/latest_snapshot.json
+          touch .nojekyll
+          cat > index.html <<'HTML'
+          <!doctype html>
+          <html lang="en">
+          <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>BTC Research Dashboard Data</title></head>
+          <body>
+            <h1>BTC Research Dashboard Data</h1>
+            <p>Machine-readable latest point-in-time observation.</p>
+            <p><a href="data/latest_snapshot.json">latest_snapshot.json</a></p>
+            <p>Missing values remain null; gaps are not estimated.</p>
+          </body>
+          </html>
+          HTML
+          git add -f .nojekyll index.html data/latest_snapshot.json
+          if ! git diff --cached --quiet; then
+            git commit -m "data: publish latest snapshot"
+            git push origin gh-pages
+          else
+            echo "No Pages changes to commit."
+          fi
