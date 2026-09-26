@@ -1,0 +1,68 @@
+name: Collect BTC snapshot
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 * * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: btc-snapshot-collector
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out application code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Collect snapshot
+        run: python collect_snapshot.py
+
+      - name: Publish snapshots to separate branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/new-data /tmp/snapshots
+          cp -R data /tmp/new-data
+          git config user.name "btc-research-bot"
+          git config user.email "btc-research-bot@users.noreply.github.com"
+
+          if git ls-remote --exit-code --heads origin snapshots >/dev/null 2>&1; then
+            git fetch origin snapshots
+            git worktree add -B snapshots /tmp/snapshots origin/snapshots
+          else
+            git worktree add --detach /tmp/snapshots
+            cd /tmp/snapshots
+            git checkout --orphan snapshots
+            git rm -rf . || true
+          fi
+
+          cd /tmp/snapshots
+          mkdir -p data
+          # Preserve all prior hourly files; update only files produced this run.
+          cp /tmp/new-data/latest_snapshot.json data/latest_snapshot.json
+          mkdir -p "$(dirname "$(find /tmp/new-data/history -type f | head -1 | sed 's#^/tmp/new-data/##')")"
+          cp --parents /tmp/new-data/history/*/*/*/*.json .
+          git add data/
+          if git diff --cached --quiet; then
+            echo "No snapshot changes to commit."
+            exit 0
+          fi
+          git commit -m "data: hourly BTC snapshot"
+          git push origin snapshots
