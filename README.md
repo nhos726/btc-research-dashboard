@@ -1,4 +1,4 @@
-# BTC Research Dashboard v0.3.3
+# BTC Research Dashboard v0.3.4
 
 A mobile-first Streamlit research terminal for quickly observing what is happening in the Bitcoin market.
 

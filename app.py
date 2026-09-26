@@ -19,6 +19,12 @@ from market_state import build_market_state
 
 st.set_page_config(page_title="BTC Research Dashboard", page_icon="₿", layout="wide", initial_sidebar_state="collapsed")
 st.markdown("""<style>
+  /* Cloud-safe theme fallback. The .streamlit theme remains the primary setting,
+     but these rules keep the page readable even if a host/user theme overrides it. */
+  html, body, [data-testid="stAppViewContainer"], .stApp {background:#080D14 !important; color:#E8EDF4 !important;}
+  [data-testid="stHeader"] {background:rgba(8,13,20,.92) !important;}
+  [data-testid="stToolbar"], [data-testid="stDecoration"] {color:#E8EDF4 !important;}
+  .stMarkdown, .stMarkdown p, .stMarkdown li, .stCaption, label, h1, h2, h3 {color:#E8EDF4;}
   .block-container {max-width: 1050px; padding-top: 1.8rem; padding-bottom: 4rem;}
   /* Desktop only: keep the title below Streamlit's fixed top chrome. Mobile spacing stays unchanged. */
   @media(min-width:761px){.block-container{padding-top:4.5rem;}}
@@ -100,7 +106,7 @@ def unsupported_note(text):
     st.markdown(f'<div class="unsupported">{escape(text)}</div>', unsafe_allow_html=True)
 
 st.markdown('<div class="dashboard-title">₿ BTC Research Dashboard</div>', unsafe_allow_html=True)
-st.markdown('<div class="dashboard-subtitle">v0.3.3 · Market observation, not a trading signal</div>', unsafe_allow_html=True)
+st.markdown('<div class="dashboard-subtitle">v0.3.4 · Market observation, not a trading signal</div>', unsafe_allow_html=True)
 if st.button("↻ Refresh", width="stretch"):
     st.cache_data.clear(); st.rerun()
 
