@@ -1,4 +1,4 @@
-# BTC Research Dashboard v0.3.4
+# BTC Research Dashboard v0.3.5
 
 A mobile-first Streamlit research terminal for quickly observing what is happening in the Bitcoin market.
 
@@ -80,7 +80,7 @@ This repository is designed to be deployed directly from GitHub.
 4. Select the `main` branch and `app.py` as the entrypoint.
 5. Deploy.
 
-No API key is required for the current v0.3.3 data sources.
+No API key is required for the current v0.3.5 data sources.
 
 ### Future paid APIs / secrets
 
@@ -125,6 +125,6 @@ When modifying this project with an AI coding assistant:
 
 ## Current status
 
-v0.3.3 is the cloud-ready packaging of the working v0.3.2 dashboard. Market calculations and dashboard sections are unchanged; the release cleans repository artifacts and updates documentation for public GitHub + Streamlit Community Cloud deployment.
+v0.3.5 replaces the cloud-blocked Binance futures collector with free public Deribit BTC futures/perpetual data for current OI, funding, perpetual premium, and the dated-futures curve. OI history/change is intentionally not estimated when unavailable.
 
 Future directions include point-in-time snapshot storage and historical/similar-market-state research, without turning the dashboard into an automated trading system.

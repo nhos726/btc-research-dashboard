@@ -106,7 +106,7 @@ def unsupported_note(text):
     st.markdown(f'<div class="unsupported">{escape(text)}</div>', unsafe_allow_html=True)
 
 st.markdown('<div class="dashboard-title">₿ BTC Research Dashboard</div>', unsafe_allow_html=True)
-st.markdown('<div class="dashboard-subtitle">v0.3.4 · Market observation, not a trading signal</div>', unsafe_allow_html=True)
+st.markdown('<div class="dashboard-subtitle">v0.3.5 · Market observation, not a trading signal</div>', unsafe_allow_html=True)
 if st.button("↻ Refresh", width="stretch"):
     st.cache_data.clear(); st.rerun()
 
@@ -159,7 +159,7 @@ st.caption("Rule-based descriptors only. Each axis is independent; missing input
 with st.expander("Market State definitions"):
     st.markdown("""
 - **Trend:** price distance from confirmed 200d MA and 50w MA; both > +10% = well above, both > 0% = above, both < −10% = well below, both < 0% = below, otherwise mixed.
-- **Positioning / OI level:** current Binance USDⓈ-M OI versus the available 30-day OI history; below Q25 = low, above Q75 = high, otherwise mid-range. **OI change:** 24h > +2% = building, < −2% = unwinding, otherwise stable.
+- **Positioning:** Deribit BTC perpetual funding is classified as negative / neutral / positive / very positive. Current Deribit perpetual OI is shown as context. Free public OI history is not estimated, so no OI-level or OI-change label is produced in this cloud-safe version.
 - **Funding:** < −0.005%/8h = negative; −0.005% to +0.005% = neutral; > +0.005% to +0.020% = positive; > +0.020% = very positive.
 - **Volatility:** 30d annualized RV <30% = low; 30–<50% = moderate; 50–<70% = elevated; ≥70% = high.
 - **Options:** ~30d ATM IV minus 30d RV < −5 pp = IV below RV; > +5 pp = IV above RV; otherwise near RV. 25Δ RR adds directional relative pricing: > +0.5 pp = calls richer; < −0.5 pp = puts richer; otherwise near balanced.
@@ -196,10 +196,11 @@ else:
 
 st.header("DERIVATIVES")
 if "derivatives" not in data:
-    st.warning("Binance derivatives data is currently unavailable.")
+    st.warning("Deribit derivatives data is currently unavailable.")
 else:
     deriv, oi, funding, deriv_updated = data["derivatives"]
-    metrics([("Binance perp OI", f"${deriv['open_interest_usd']/1e9:.2f}B"), ("Binance OI 24h", pct(deriv.get("oi_change_24h"))), ("Binance OI 7d", pct(deriv.get("oi_change_7d"))), ("Latest funding / 8h", pct(deriv.get("funding_rate", 0)*100, 4)), ("Perp premium", pct(deriv.get("spot_perp_basis_pct"), 3)), ("Mark price", money(deriv.get("mark_price")))])
+    oi_contracts = deriv.get("open_interest_contracts")
+    metrics([("Deribit perp OI", "N/A" if oi_contracts is None else f"{oi_contracts:,.0f} contracts"), ("OI 24h change", "N/A"), ("OI 7d change", "N/A"), ("Latest funding / 8h", pct(deriv.get("funding_rate")*100 if deriv.get("funding_rate") is not None else None, 4)), ("Perp premium", pct(deriv.get("spot_perp_basis_pct"), 3)), ("Mark price", money(deriv.get("mark_price")))])
     if not oi.empty:
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         if enriched is not None:
@@ -221,7 +222,7 @@ else:
                 expiry = pd.Timestamp(row["expiry"]).strftime("%d %b %Y")
                 basis_cards.append((f"{row['contract']} · {int(round(row['days']))}d", f"{row['basis_pct']:+.2f}% · ann. {row['annualized_basis_pct']:+.2f}% · {expiry}"))
             metrics(basis_cards)
-    st.caption(f"Binance USDⓈ-M · BTCUSDT perpetual and listed quarterly futures · OI history 1 day · funding 8 hours · {stamp(deriv_updated)}")
+    st.caption(f"Deribit · BTC-PERPETUAL and listed BTC dated futures · current OI snapshot · funding shown as 8h equivalent · {stamp(deriv_updated)}")
 
 st.header("OPTIONS")
 if "options" not in data:
@@ -337,7 +338,7 @@ st.header("DATA SOURCES")
 sources = [
     ["BTC/USD spot & ATH", "CoinGecko", "Aggregated BTC/USD", "Current snapshot", stamp(market_updated)],
     ["OHLCV & indicators", "Binance Spot", "BTCUSDT", "1 day", stamp(data.get("spot", (None,None))[1])],
-    ["OI / funding / perp basis", "Binance USDⓈ-M", "BTCUSDT perpetual", "1d / 8h / current", stamp(data.get("derivatives", (None,None,None,None))[3])],
+    ["OI / funding / perp basis", "Deribit", "BTC-PERPETUAL", "current / 8h equivalent", stamp(data.get("derivatives", (None,None,None,None))[3])],
     ["Options IV", "Deribit", "BTC listed options", "Current summary", stamp(data.get("options", (None,None,None))[2])],
     ["Stablecoin supply", "DefiLlama", "USD-pegged stablecoins", "Daily history", stamp(data.get("stablecoins", (None,None,None))[2])],
     ["US Spot BTC ETF flows", "Farside Investors", "US spot BTC ETFs", "Daily / trading days", stamp(data.get("etf_flows", (None,None,None))[2])],

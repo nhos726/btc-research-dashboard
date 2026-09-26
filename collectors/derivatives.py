@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pandas as pd
 
@@ -8,57 +8,111 @@ from collectors.http import DataSourceError, get_json
 from config import SETTINGS
 
 
+def _deribit(path: str, params: dict | None = None):
+    payload = get_json(f"{SETTINGS.deribit_base}/public/{path}", params)
+    if not isinstance(payload, dict) or "result" not in payload:
+        raise DataSourceError("Deribit returned an unexpected response")
+    if payload.get("error"):
+        raise DataSourceError("Deribit API returned an error")
+    return payload["result"]
+
+
 def fetch_derivatives() -> tuple[dict, pd.DataFrame, pd.DataFrame, datetime]:
-    base = SETTINGS.binance_futures_base
-    symbol = SETTINGS.futures_pair
-    premium = get_json(f"{base}/fapi/v1/premiumIndex", {"symbol": symbol})
-    current_oi = get_json(f"{base}/fapi/v1/openInterest", {"symbol": symbol})
-    oi_rows = get_json(f"{base}/futures/data/openInterestHist", {"symbol": symbol, "period": "1d", "limit": 31})
-    funding_rows = get_json(f"{base}/fapi/v1/fundingRate", {"symbol": symbol, "limit": 90})
-    oi = pd.DataFrame(oi_rows)
-    if not oi.empty:
-        oi["time"] = pd.to_datetime(oi["timestamp"], unit="ms", utc=True)
-        oi["oi_usdt"] = pd.to_numeric(oi["sumOpenInterestValue"], errors="coerce")
-        oi = oi.set_index("time").sort_index()
-    funding = pd.DataFrame(funding_rows)
+    """Fetch cloud-safe BTC perpetual positioning inputs from Deribit.
+
+    Deribit is already used by the options collector and is reachable from the
+    deployed Streamlit app.  Unlike the old Binance implementation, free public
+    Deribit endpoints do not provide the 30-day OI history used by this dashboard,
+    so OI is reported as a current snapshot and the Market State positioning card
+    classifies funding only.  No OI history/change is fabricated.
+    """
+    summaries = _deribit("get_book_summary_by_currency", {"currency": "BTC", "kind": "future"})
+    perp = next((x for x in summaries if x.get("instrument_name") == "BTC-PERPETUAL"), None)
+    if not perp:
+        raise DataSourceError("Deribit BTC-PERPETUAL summary unavailable")
+
+    mark = _num(perp.get("mark_price"))
+    index = _num(perp.get("underlying_price")) or _num(perp.get("estimated_delivery_price"))
+    funding_rate = _num(perp.get("funding_8h"))
+    current_funding = _num(perp.get("current_funding"))
+    open_interest = _num(perp.get("open_interest"))
+
+    now = datetime.now(timezone.utc)
+    start_ms = int((now - timedelta(days=30)).timestamp() * 1000)
+    end_ms = int(now.timestamp() * 1000)
+    history_rows = _deribit("get_funding_rate_history", {
+        "instrument_name": "BTC-PERPETUAL",
+        "start_timestamp": start_ms,
+        "end_timestamp": end_ms,
+    })
+    funding = pd.DataFrame(history_rows)
     if not funding.empty:
-        funding["time"] = pd.to_datetime(funding["fundingTime"], unit="ms", utc=True)
-        funding["funding_rate"] = pd.to_numeric(funding["fundingRate"], errors="coerce")
+        funding["time"] = pd.to_datetime(funding["timestamp"], unit="ms", utc=True)
+        # Deribit exposes the 8-hour-equivalent interest as interest_8h.
+        funding["funding_rate"] = pd.to_numeric(funding.get("interest_8h"), errors="coerce")
         funding = funding.set_index("time").sort_index()
-    mark = float(premium["markPrice"])
-    index = float(premium["indexPrice"])
+
     stats = {
-        "open_interest_btc": float(current_oi["openInterest"]),
-        "open_interest_usd": float(current_oi["openInterest"]) * mark,
-        "oi_change_24h": _period_change(oi.get("oi_usdt"), 1),
-        "oi_change_7d": _period_change(oi.get("oi_usdt"), 7),
-        "funding_rate": float(premium["lastFundingRate"]),
+        "venue": "Deribit",
+        "open_interest_contracts": open_interest,
+        "open_interest_usd": None,
+        "oi_change_24h": None,
+        "oi_change_7d": None,
+        "funding_rate": funding_rate,
+        "current_funding": current_funding,
         "mark_price": mark,
         "index_price": index,
-        "spot_perp_basis_pct": (mark / index - 1) * 100 if index else None,
+        "spot_perp_basis_pct": (mark / index - 1) * 100 if mark and index else None,
     }
-    updated = datetime.fromtimestamp(int(premium["time"]) / 1000, tz=timezone.utc)
+    oi = pd.DataFrame()  # intentionally unavailable from the chosen free endpoint
+    updated_ms = perp.get("creation_timestamp")
+    updated = datetime.fromtimestamp(int(updated_ms) / 1000, tz=timezone.utc) if updated_ms else now
     return stats, oi, funding, updated
 
 
+def fetch_delivery_basis() -> tuple[pd.DataFrame, datetime]:
+    """Build the current Deribit BTC dated-futures curve from public summaries."""
+    summaries = _deribit("get_book_summary_by_currency", {"currency": "BTC", "kind": "future"})
+    instruments = _deribit("get_instruments", {"currency": "BTC", "kind": "future", "expired": "false"})
+    expiry_by_name = {
+        x.get("instrument_name"): x.get("expiration_timestamp")
+        for x in instruments
+        if x.get("instrument_name") and x.get("instrument_name") != "BTC-PERPETUAL"
+    }
+    now = pd.Timestamp.now(tz="UTC")
+    rows = []
+    for item in summaries:
+        name = item.get("instrument_name")
+        expiry_ms = expiry_by_name.get(name)
+        if not name or name == "BTC-PERPETUAL" or not expiry_ms:
+            continue
+        expiry = pd.to_datetime(expiry_ms, unit="ms", utc=True)
+        days = (expiry - now).total_seconds() / 86400
+        price = _num(item.get("mark_price"))
+        index_price = _num(item.get("underlying_price")) or _num(item.get("estimated_delivery_price"))
+        if days <= 0 or not price or not index_price:
+            continue
+        basis = (price / index_price - 1) * 100
+        rows.append({
+            "contract": name,
+            "expiry": expiry,
+            "days": days,
+            "price": price,
+            "basis_pct": basis,
+            "annualized_basis_pct": basis * 365 / days,
+        })
+    return pd.DataFrame(rows).sort_values("days") if rows else pd.DataFrame(), datetime.now(timezone.utc)
+
+
+def _num(value) -> float | None:
+    try:
+        return None if value is None else float(value)
+    except (TypeError, ValueError):
+        return None
+
+# Kept for backward-compatible unit tests and possible future historical OI sources.
 def _period_change(series: pd.Series | None, periods: int) -> float | None:
     if series is None or len(series.dropna()) <= periods:
         return None
     values = series.dropna()
     return (values.iloc[-1] / values.iloc[-1 - periods] - 1) * 100
-
-
-def fetch_delivery_basis() -> tuple[pd.DataFrame, datetime]:
-    base = SETTINGS.binance_futures_base
-    info = get_json(f"{base}/fapi/v1/exchangeInfo")
-    now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
-    contracts = [s for s in info.get("symbols", []) if s.get("baseAsset") == "BTC" and s.get("contractType") in {"CURRENT_QUARTER", "NEXT_QUARTER"} and int(s.get("deliveryDate", 0)) > now_ms]
-    rows = []
-    for contract in contracts:
-        premium = get_json(f"{base}/fapi/v1/premiumIndex", {"symbol": contract["symbol"]})
-        expiry = pd.to_datetime(contract["deliveryDate"], unit="ms", utc=True)
-        days = max((expiry - pd.Timestamp.now(tz="UTC")).total_seconds() / 86400, 0.01)
-        price, index_price = float(premium["markPrice"]), float(premium["indexPrice"])
-        rows.append({"contract": contract["symbol"], "expiry": expiry, "days": days, "price": price, "basis_pct": (price / index_price - 1) * 100, "annualized_basis_pct": (price / index_price - 1) * 365 / days * 100})
-    return pd.DataFrame(rows), datetime.now(timezone.utc)
-

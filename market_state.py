@@ -65,10 +65,19 @@ def classify_funding(rate) -> tuple[str, str]:
     return label, f"{pct:+.4f}% / 8h"
 
 
-def classify_positioning(current_oi_usd, oi_history, oi_change_24h, funding_rate) -> tuple[str, str]:
+def classify_positioning(current_oi_usd, oi_history, oi_change_24h, funding_rate, current_oi_contracts=None) -> tuple[str, str]:
     oi_level, oi_detail = classify_oi_level(current_oi_usd, oi_history)
     oi_change = classify_oi_change(oi_change_24h)
     funding, funding_detail = classify_funding(funding_rate)
+    # Cloud-safe Deribit fallback: the free public snapshot supplies current OI
+    # and funding, but not the 30-day OI history previously used for Binance.
+    # We therefore classify funding only and show OI as context rather than
+    # inventing an OI level/change.
+    if oi_level == "N/A" and oi_change == "N/A" and funding != "N/A":
+        detail = f"funding {funding_detail}"
+        if _valid(current_oi_contracts):
+            detail = f"Deribit perp OI {float(current_oi_contracts):,.0f} contracts · " + detail
+        return f"{funding} funding", detail
     parts = [oi_level, oi_change, funding]
     if all(x == "N/A" for x in parts):
         return "N/A", "Positioning inputs unavailable"
@@ -123,7 +132,8 @@ def build_market_state(technical: dict, deriv: dict | None, oi: pd.DataFrame | N
     else:
         hist = oi.get("oi_usdt") if oi is not None and not oi.empty and "oi_usdt" in oi else None
         positioning = classify_positioning(deriv.get("open_interest_usd"), hist,
-                                            deriv.get("oi_change_24h"), deriv.get("funding_rate"))
+                                            deriv.get("oi_change_24h"), deriv.get("funding_rate"),
+                                            deriv.get("open_interest_contracts"))
     volatility = classify_volatility(technical.get("rv30"))
     options = classify_options(opt.get("atm_30d_iv") if opt else None, technical.get("rv30"), opt.get("rr_25d") if opt else None)
     curve = classify_curve(delivery)
