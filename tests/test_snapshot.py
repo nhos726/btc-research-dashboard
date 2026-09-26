@@ -20,6 +20,6 @@ def test_snapshot_is_strict_json_and_preserves_missing_as_null():
     )
     text = snapshot_json(snap)
     parsed = json.loads(text)
-    assert parsed["dashboard_version"] == "0.3.6"
+    assert parsed["dashboard_version"] == "0.3.7"
     assert parsed["derivatives"]["oi_change_24h"] is None
     assert parsed["dated_futures_curve"][0]["annualized_basis_pct"] == 4.33

@@ -107,7 +107,7 @@ def unsupported_note(text):
     st.markdown(f'<div class="unsupported">{escape(text)}</div>', unsafe_allow_html=True)
 
 st.markdown('<div class="dashboard-title">₿ BTC Research Dashboard</div>', unsafe_allow_html=True)
-st.markdown('<div class="dashboard-subtitle">v0.3.6 · Market observation, not a trading signal</div>', unsafe_allow_html=True)
+st.markdown('<div class="dashboard-subtitle">v0.3.7 · Market observation, not a trading signal</div>', unsafe_allow_html=True)
 if st.button("↻ Refresh", width="stretch"):
     st.cache_data.clear(); st.rerun()
 

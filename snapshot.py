@@ -50,7 +50,7 @@ def build_snapshot(*, market: dict, technical: dict, states: list[dict], deriv: 
 
     snapshot = {
         "schema_version": "0.1",
-        "dashboard_version": "0.3.6",
+        "dashboard_version": "0.3.7",
         "observed_at": datetime.now(timezone.utc),
         "market": market,
         "technical": technical,

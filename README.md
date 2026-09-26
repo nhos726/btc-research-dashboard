@@ -135,3 +135,20 @@ Future directions include point-in-time snapshot storage and historical/similar-
 - Market State futures-curve classification ignores contracts with less than 7 days remaining, preventing unstable near-expiry annualization from dominating the state label. Short-dated contracts remain visible in the curve cards.
 - Adds a machine-readable `latest_snapshot.json` export generated from the same in-memory observations shown in the UI. Missing data stays `null`; values are not refetched or estimated.
 - The Streamlit runtime filesystem is ephemeral. v0.3.6 provides the snapshot schema/export foundation; durable point-in-time history and a stable public JSON endpoint require persistent storage or a scheduled GitHub workflow and are intentionally not claimed yet.
+
+## Automated point-in-time archive (v0.3.7)
+
+GitHub Actions runs the headless `collect_snapshot.py` collector once per hour
+(at minute 17 UTC, subject to normal GitHub Actions scheduling delay). It publishes
+one hourly UTC snapshot to the separate `snapshots` branch under
+`data/history/YYYY/MM/DD/HH.json` and updates `data/latest_snapshot.json`. Keeping data
+off `main` avoids redeploying the Streamlit app every hour. The collector records partial results rather than
+inventing missing observations.
+
+The latest machine-readable snapshot is intended to be publicly readable at:
+
+`https://raw.githubusercontent.com/nhos726/btc-research-dashboard/snapshots/data/latest_snapshot.json`
+
+This archive is the foundation for later OI 24h/7d changes and point-in-time
+"similar history" research. OI changes should only be calculated after enough
+real snapshots have accumulated; they are not backfilled or estimated.
