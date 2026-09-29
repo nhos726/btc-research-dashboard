@@ -1,13 +1,13 @@
 {
   "schema_version": "0.1",
   "dashboard_version": "0.3.7",
-  "observed_at": "2026-09-29T08:27:32.765617+00:00",
+  "observed_at": "2026-09-29T15:49:33.644866+00:00",
   "market": {
-    "price_usd": 84174.0,
-    "change_24h": 1.64315,
-    "change_7d": -1.34579,
+    "price_usd": 83132.0,
+    "change_24h": -0.12883,
+    "change_7d": -3.56697,
     "ath_usd": 126080,
-    "ath_change_pct": -33.23731
+    "ath_change_pct": -34.0639
   },
   "technical": {
     "close": 83500.01,
@@ -28,7 +28,7 @@
     {
       "name": "Positioning",
       "state": "Neutral funding",
-      "detail": "Deribit perp OI 814,955,760 contracts · funding +0.0000% / 8h"
+      "detail": "Deribit perp OI 777,708,730 contracts · funding +0.0007% / 8h"
     },
     {
       "name": "Volatility",
@@ -38,130 +38,130 @@
     {
       "name": "Options",
       "state": "IV below realized volatility / RR near balanced",
-      "detail": "IV−RV -6.5 pp · 25Δ RR +0.1 pp"
+      "detail": "IV−RV -6.7 pp · 25Δ RR -0.0 pp"
     },
     {
       "name": "Futures curve",
       "state": "Contango",
-      "detail": "nearest ≥7d annualized basis +3.36% · 10d to expiry"
+      "detail": "nearest ≥7d annualized basis +5.01% · 10d to expiry"
     }
   ],
   "derivatives": {
     "venue": "Deribit",
-    "open_interest_contracts": 814955760.0,
+    "open_interest_contracts": 777708730.0,
     "open_interest_usd": null,
     "oi_change_24h": null,
     "oi_change_7d": null,
-    "funding_rate": 3e-08,
-    "current_funding": 0.0,
-    "mark_price": 84171.28,
-    "index_price": 84171.85,
-    "spot_perp_basis_pct": -0.0006771860188492518
+    "funding_rate": 6.71e-06,
+    "current_funding": 5.193e-05,
+    "mark_price": 83257.19,
+    "index_price": 83232.06,
+    "spot_perp_basis_pct": 0.0301926925754481
   },
   "dated_futures_curve": [
     {
       "contract": "BTC-30SEP26",
       "expiry": "2026-09-30T08:00:00+00:00",
-      "days": 0.9809004937847222,
-      "basis_pct": -0.016810845906334304,
-      "annualized_basis_pct": -6.255434465260528
+      "days": 0.6739521180092592,
+      "basis_pct": 0.01889837491997337,
+      "annualized_basis_pct": 10.235010264773011
     },
     {
       "contract": "BTC-1OCT26",
       "expiry": "2026-10-01T08:00:00+00:00",
-      "days": 1.9809004937847223,
-      "basis_pct": -0.00645108786370141,
-      "annualized_basis_pct": -1.1886750887482538
+      "days": 1.6739521180092591,
+      "basis_pct": 0.0321140217171445,
+      "annualized_basis_pct": 7.0023615374958466
     },
     {
       "contract": "BTC-2OCT26",
       "expiry": "2026-10-02T08:00:00+00:00",
-      "days": 2.9809004937847225,
-      "basis_pct": 0.014007058179177356,
-      "annualized_basis_pct": 1.7151113383555163
+      "days": 2.673952118009259,
+      "basis_pct": 0.04275862450104917,
+      "annualized_basis_pct": 5.836640767712096
     },
     {
       "contract": "BTC-3OCT26",
       "expiry": "2026-10-03T08:00:00+00:00",
-      "days": 3.9809004937847225,
-      "basis_pct": 0.022572867294701204,
-      "annualized_basis_pct": 2.0696564949135077
+      "days": 3.6739521180092596,
+      "basis_pct": 0.059326239894996746,
+      "annualized_basis_pct": 5.893946591064211
     },
     {
       "contract": "BTC-9OCT26",
       "expiry": "2026-10-09T08:00:00+00:00",
-      "days": 9.980900493784722,
-      "basis_pct": 0.09199037445415392,
-      "annualized_basis_pct": 3.3640738825795165
+      "days": 9.67395211800926,
+      "basis_pct": 0.13279322186294795,
+      "annualized_basis_pct": 5.010312785169154
     },
     {
       "contract": "BTC-16OCT26",
       "expiry": "2026-10-16T08:00:00+00:00",
-      "days": 16.980900493784723,
-      "basis_pct": 0.18267389869652817,
-      "annualized_basis_pct": 3.9265275153480363
+      "days": 16.673952118009257,
+      "basis_pct": 0.22882291718102632,
+      "annualized_basis_pct": 5.009032302597634
     },
     {
       "contract": "BTC-30OCT26",
       "expiry": "2026-10-30T08:00:00+00:00",
-      "days": 30.98090049378472,
-      "basis_pct": 0.37590952319568327,
-      "annualized_basis_pct": 4.428760099918669
+      "days": 30.673952118009257,
+      "basis_pct": 0.41702574179725005,
+      "annualized_basis_pct": 4.962334008033752
     },
     {
       "contract": "BTC-27NOV26",
       "expiry": "2026-11-27T08:00:00+00:00",
-      "days": 58.98090049378472,
-      "basis_pct": 0.8113282528541266,
-      "annualized_basis_pct": 5.0208594614957125
+      "days": 58.67395211800926,
+      "basis_pct": 0.8532742425722439,
+      "annualized_basis_pct": 5.308064094821298
     },
     {
       "contract": "BTC-25DEC26",
       "expiry": "2026-12-25T08:00:00+00:00",
-      "days": 86.98090049378473,
-      "basis_pct": 1.1978232627654073,
-      "annualized_basis_pct": 5.026453950549919
+      "days": 86.67395211800927,
+      "basis_pct": 1.2658066644584576,
+      "annualized_basis_pct": 5.330545351137136
     },
     {
       "contract": "BTC-26MAR27",
       "expiry": "2027-03-26T08:00:00+00:00",
-      "days": 177.98090049378473,
-      "basis_pct": 2.4518886064640144,
-      "annualized_basis_pct": 5.028288647132771
+      "days": 177.67395211800925,
+      "basis_pct": 2.5363709617638897,
+      "annualized_basis_pct": 5.210529680956998
     },
     {
       "contract": "BTC-25JUN27",
       "expiry": "2027-06-25T08:00:00+00:00",
-      "days": 268.9809004937847,
-      "basis_pct": 3.8610057875643644,
-      "annualized_basis_pct": 5.239283197706287
+      "days": 268.67395211800925,
+      "basis_pct": 3.963925128795487,
+      "annualized_basis_pct": 5.385087242751625
     },
     {
       "contract": "BTC-24SEP27",
       "expiry": "2027-09-24T08:00:00+00:00",
-      "days": 359.9809004937847,
-      "basis_pct": 5.189240821010821,
-      "annualized_basis_pct": 5.261592759701572
+      "days": 359.67395211800925,
+      "basis_pct": 5.29295064184192,
+      "annualized_basis_pct": 5.371328596068126
     }
   ],
   "options": {
-    "atm_30d_iv": 34.89,
+    "atm_30d_iv": 34.7,
     "atm_30d_expiry": "2026-10-30T08:00:00+00:00",
-    "atm_30d_days": 30.980896968113424,
+    "atm_30d_days": 30.673946447928238,
     "atm_30d_strike": 84000.0,
     "atm_30d_legs": 2,
-    "rr_25d": 0.10030019197553486,
-    "call_25d_iv": 35.43748818153167,
-    "put_25d_iv": 35.337187989556135,
-    "rr_25d_method": "Call: interpolated |Δ| 0.220–0.252; Put: interpolated |Δ| 0.241–0.279",
+    "rr_25d": -0.02727534965035261,
+    "call_25d_iv": 35.23545192307692,
+    "put_25d_iv": 35.262727272727275,
+    "rr_25d_method": "Call: interpolated |Δ| 0.219–0.251; Put: interpolated |Δ| 0.234–0.272",
     "rr_25d_points": 32
   },
   "stablecoins": {
-    "total_supply_usd": 311287205519.55,
-    "change_7d": 0.30210434250199647,
-    "change_30d": 1.3243669014378012,
-    "change_90d": 0.8010826530305826,
-    "usdt_dominance": 59.03735134109612
+    "total_supply_usd": 311313894236.34,
+    "change_7d": 0.31070390717660157,
+    "change_30d": 1.3330541114618955,
+    "change_90d": 0.8097249984252874,
+    "usdt_dominance": 59.05905017084174
   },
   "etf_flows": null,
   "exchange_flows": {
@@ -173,14 +173,14 @@
     "latest_outflow_btc": 30287.65789306
   },
   "source_times": {
-    "market": "2026-09-29T08:24:40+00:00",
-    "spot": "2026-09-29T08:27:28.986856+00:00",
-    "derivatives": "2026-09-29T08:27:28.010000+00:00",
-    "delivery": "2026-09-29T08:27:30.199986+00:00",
-    "options": "2026-09-29T08:27:31.686073+00:00",
+    "market": "2026-09-29T15:46:40+00:00",
+    "spot": "2026-09-29T15:49:28.815737+00:00",
+    "derivatives": "2026-09-29T15:49:27.638000+00:00",
+    "delivery": "2026-09-29T15:49:30.539723+00:00",
+    "options": "2026-09-29T15:49:32.476083+00:00",
     "stablecoins": "2026-09-29T00:00:00+00:00",
     "etf_flows": null,
-    "exchange_flows": "2026-09-29T08:27:32.752476+00:00"
+    "exchange_flows": "2026-09-29T15:49:33.632081+00:00"
   },
   "errors": {
     "etf_flows": "DataSourceError: Farside request failed: HTTPError"
